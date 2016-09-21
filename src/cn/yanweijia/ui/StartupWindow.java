@@ -67,8 +67,10 @@ public class StartupWindow extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				//选择网卡
 				int index = comboBox.getSelectedIndex();
-				JOptionPane.showMessageDialog(StartupWindow.this, "You have selected index :  "+index);
-		
+				//JOptionPane.showMessageDialog(StartupWindow.this, "You have selected index :  "+index);
+				new MainWindow(index);
+				dispose();
+				
 			}
 		});
 		btn_ok.setBounds(43, 87, 141, 40);
