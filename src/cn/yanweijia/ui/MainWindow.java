@@ -16,23 +16,37 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextPane;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.awt.event.ActionEvent;
 import javax.swing.border.LineBorder;
+import javax.swing.table.DefaultTableModel;
+
+import cn.yanweijia.utils.Tools;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
 import javax.swing.JTextArea;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 
 public class MainWindow extends JFrame {
+	
+	private static final long serialVersionUID = 9196234979346808830L;
 	private NetworkInterface networkInterface;	//网卡接口
 	private JPanel contentPane;
 	private JLabel label_info;	//显示网卡信息的标签
 	private boolean isCapturing = false;	//是否正在抓包
 	private JPanel panel;
-	private JTextArea textArea;
 	private JpcapCaptor captor;	//用于与网络设备进行连接
+	private List<Packet> packetList;
+	private int packetIndex = 1; //记录当前第几个包
+	private DefaultTableModel tableModel;	//表格用到的Model
+	private JTable table;
+	
 	
 	/**
 	 * @author weijia
@@ -51,7 +65,7 @@ public class MainWindow extends JFrame {
 		//获取网卡
 		networkInterface = JpcapCaptor.getDeviceList()[index];
 		
-		
+		packetList = new ArrayList<Packet>();
 		JButton btn_cap = new JButton("开始抓包");
 		btn_cap.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -63,13 +77,28 @@ public class MainWindow extends JFrame {
 						@Override
 						public void run() {
 							try {
-								captor = JpcapCaptor.openDevice(networkInterface, Integer.MAX_VALUE, false, 20);
+								captor = JpcapCaptor.openDevice(networkInterface, 1, false, 20);
 								while(isCapturing == true){
 									Packet packet = captor.getPacket();
-									if(packet!=null)	//如果抓包的数据不为空
-										textArea.append("\n"+packet);
-									
-									
+									if(packet!=null){	//如果抓包的数据不为空
+										packetList.add(packet);	//把抓到的包放在List中
+										String[] rowData = new String[7];
+										//{"编号","时间","源MAC地址","目的MAC地址","协议类型","长度","信息"}
+										rowData[0]=""+packetIndex;
+										rowData[1]=Tools.getTime();
+										Tools.IntentAddr intentAddr = Tools.getAddr(packet);
+										rowData[2]=intentAddr.sourceAddr;
+										rowData[3]=intentAddr.destinationAddr;
+										rowData[4]=Tools.getProtocolType(packet);
+										rowData[5]=""+packet.caplen;	//数据帧长度
+										rowData[6]=null;
+										tableModel.addRow(rowData);
+										//System.out.println(packetIndex + ": " + Tools.bytesToHexString(packet.header));
+										packetIndex++;	//当前包序号自增
+										
+										
+										
+									}
 								}
 								System.out.println("停止抓包~~~");
 							} catch (IOException e1) {
@@ -104,15 +133,47 @@ public class MainWindow extends JFrame {
 		JScrollPane scrollPane = new JScrollPane();
 		panel.add(scrollPane, BorderLayout.CENTER);
 		
-		textArea = new JTextArea();
-		textArea.setLineWrap(true);
-		scrollPane.setViewportView(textArea);	//textArea嵌套在ScrollPane里面放在面板中央
+		table = new JTable();
+		scrollPane.setViewportView(table);
 		
+		//表格表头
+		Object[] tableHead = {"编号","时间","源MAC地址","目的MAC地址","协议类型","长度","信息"};
+		tableModel = new DefaultTableModel(tableHead,0);
+		table.setModel(tableModel);
+		
+		table.addMouseListener(new MouseListener(){
+
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				int row = table.getSelectedRow();
+				//TODO:在新窗口中传递这个packet
+				if(row<0 || row>packetList.size())
+					return;
+				new ViewPacket(packetList.get(row));
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+			}
+			
+		});
 		
 		setResizable(false);
 		setTitle("抓包");
 		setVisible(true);
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setBounds(100, 100, 999, 682);
 		//获取网卡信息并显示
 		init();
@@ -127,7 +188,7 @@ public class MainWindow extends JFrame {
 		String addr = "";	//网卡对应地址
 		NetworkInterfaceAddress[] address = networkInterface.addresses;
 		for(int i = 0 ; i < address.length ; i++){
-			addr += "地址" + i + ":" + address[i].address;
+			addr += "  地址" + i + ": " + address[i].address;
 		}
 		addr = addr.replaceAll("/", "");
 		String content = "<html>网卡名称:" + name + "<br>网络类型:" + datalink_description + "<br>具体网络类型:" + datalink_name + "<br>网卡地址:" + addr + "</html>";
