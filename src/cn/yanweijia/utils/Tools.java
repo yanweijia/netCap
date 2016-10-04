@@ -46,8 +46,8 @@ public class Tools {
 		String dest = Tools.getMidString(head, 0, 12);
 		String source = Tools.getMidString(head, 12, 24);
 		
-		intentAddr.destinationAddr = dest.substring(0,2)+":"+dest.substring(2, 4)+":"+dest.substring(4,6)+":"+dest.substring(6,8)+":"+dest.substring(8,10)+":"+dest.substring(10);
-		intentAddr.sourceAddr = source.substring(0,2)+":"+source.substring(2,4)+":"+source.substring(4,6)+":"+source.substring(6,8)+":"+source.substring(8,10)+":"+source.substring(10);
+		intentAddr.destinationAddr = Tools.hexMACAddressFormat(dest);
+		intentAddr.sourceAddr = Tools.hexMACAddressFormat(source);
 		
 		return intentAddr;
 	}
@@ -94,33 +94,39 @@ public class Tools {
 		return formatedHex;
 	}
 	
-	/**
-	 * 获取协议类型
-	 * @param packet 协议包
-	 * @return 协议类型
-	 */
-	public static String getProtocolType(Packet packet){
-		return getProtocolType(Tools.bytesToHexString(packet.header));
-	}
+
 	
 	/**
 	 * 获取协议类型
 	 * @param hexHeader 十六进制的协议头
 	 * @return 协议类型
 	 */
-	public static String getProtocolType(String hexHeader){
+	public static String getProtocolType(Packet packet){
+		String hexHeader = Tools.bytesToHexString(packet.header);
+		String hexData = Tools.bytesToHexString(packet.data);
 		String protocol = hexHeader.substring(24,28);
 		if(protocol.equals("0800")){
 			protocol = hexHeader.substring(46,48);
 			//System.out.println(protocol);
-			if(protocol.equals("06"))
+			if(protocol.equals("06")){
 				return "TCP";
-			if(protocol.equals("11"))
+			}
+			if(protocol.equals("11")){
+				if(hexData.startsWith("02")){
+					return "OICQ";
+				}
+				
+				//如果不是其他情况,则返回UDP协议
 				return "UDP";
+			}
+			if(protocol.equals("01")){
+				return "ICMP";
+			}
+			
 			
 			return "IP";
 		}
-		if(protocol.equals("0600")){
+		if(protocol.equals("0806")){
 			return "ARP";
 		}
 		
@@ -136,30 +142,62 @@ public class Tools {
 		String protocolAnalyze = "";
 		String protocolType = Tools.getProtocolType(packet);
 		String hex = Tools.bytesToHexString(packet.header);
-		if(protocolType.equals("TCP") ||  protocolType.equals("UDP")){
+		//如果是TCP或者UDP协议,分析源地址目的地址
+		if(protocolType.equals("TCP") ||  protocolType.equals("UDP")|| protocolType.equals("ICMP") || protocolType.equals("OICQ")){
 			protocolAnalyze+="版本Version:" + hex.charAt(28) + "\n";
 			protocolAnalyze+="协议头长HeaderLength:" +(Integer.valueOf(hex.substring(29, 30), 16)*4)+"\n";
 			protocolAnalyze+="包总长 TotalLength:" +(Integer.valueOf(hex.substring(32, 36),16))+"\n";
-			protocolAnalyze+="源地址Source:"+Integer.valueOf(hex.substring(52, 54),16)+"."+
-											Integer.valueOf(hex.substring(54, 56),16)+"."+
-											Integer.valueOf(hex.substring(56, 58),16)+"."+
-											Integer.valueOf(hex.substring(58,60),16)+"\n";
+			protocolAnalyze+="源地址Source:"+Tools.hexIPv4AddressFormat(hex.substring(52,60))+"\n";
 			
-			protocolAnalyze+="目的地址Destination:"+Integer.valueOf(hex.substring(60, 62),16)+"."+
-												Integer.valueOf(hex.substring(62, 64),16)+"."+
-												Integer.valueOf(hex.substring(64, 66),16)+"."+
-												Integer.valueOf(hex.substring(66, 68),16)+"\n";
+			protocolAnalyze+="目的地址Destination:"+Tools.hexIPv4AddressFormat(hex.substring(60,68))+"\n";
 			//源端口,目标端口
 			protocolAnalyze+="源端口SourcePort:"+Integer.valueOf(hex.substring(68, 72),16)+"\n";
 			protocolAnalyze+="目标端口DestinationPort:"+Integer.valueOf(hex.substring(72, 76),16)+"\n";
 		}
-		
+		if(protocolType.equals("ARP")){
+			protocolAnalyze+="硬件类型HardwareType:" + Integer.valueOf(hex.substring(28, 32),16)+"\n";
+			String ARPprotocolType = "未知";
+			if(hex.substring(32, 36).equals("0800")){
+				ARPprotocolType = "IPv4";
+			}
+			protocolAnalyze+="协议类型ProtocolType:" + ARPprotocolType+"\n";
+			protocolAnalyze+="硬件地址长度HardwareSize:" + Integer.valueOf(hex.substring(36, 38),16)+"\n";
+			protocolAnalyze+="协议地址长度ProtocolSize:" + Integer.valueOf(hex.substring(38, 40),16)+"\n";
+			Integer opcode = Integer.valueOf(hex.substring(40, 44),16);
+			protocolAnalyze+="Opcode:" + (opcode==1?"request":(opcode==2?"reply":"unknow,code is" + opcode))+"\n";
+			protocolAnalyze+="发送方MAC地址SenderMACAddress:" + Tools.hexMACAddressFormat(hex.substring(44, 56))+"\n";
+			protocolAnalyze+="发送方IP地址SenderIPAddress:" + Tools.hexIPv4AddressFormat(hex.substring(56, 64))+"\n";
+			protocolAnalyze+="接收方MAC地址TargetMACAddress:" + Tools.hexMACAddressFormat(hex.substring(64, 76))+"\n";
+			protocolAnalyze+="接收方IP地址TargetIPAddress:" + Tools.hexIPv4AddressFormat(hex.substring(76, 84))+"\n";
+		}
 		
 		
 		
 		return protocolAnalyze;
 	}
 	
+	/**
+	 * 将十六进制MAC地址格式化
+	 * @param hexMAC 欲格式化的地址
+	 * @return 格式化后的MAC地址
+	 */
+	public static String hexMACAddressFormat(String hexMAC){
+		return hexMAC.substring(0,2)+":"+hexMAC.substring(2,4)+":"+hexMAC.substring(4,6)+":"+hexMAC.substring(6,8)+":"+hexMAC.substring(8,10)+":"+hexMAC.substring(10);
+	}
+	
+	/**
+	 * 将十六进制IPv4地址格式化
+	 * @param hexIP 欲格式化的地址
+	 * @return 格式化后的IPv4地址
+	 */
+	public static String hexIPv4AddressFormat(String hexIP){
+		String result = "";
+		result += Integer.valueOf(hexIP.substring(0,2),16)+ ".";
+		result += Integer.valueOf(hexIP.substring(2,4),16)+ ".";
+		result += Integer.valueOf(hexIP.substring(4,6),16)+ ".";
+		result += Integer.valueOf(hexIP.substring(6,8),16);
+		return result;
+	}
 	
 	/**
 	 * 封装源地址和目的地址的类

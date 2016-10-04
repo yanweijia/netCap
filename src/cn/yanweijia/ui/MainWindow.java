@@ -5,16 +5,13 @@ package cn.yanweijia.ui;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
-
 import jpcap.JpcapCaptor;
 import jpcap.NetworkInterface;
 import jpcap.NetworkInterfaceAddress;
 import jpcap.packet.Packet;
-
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import javax.swing.JTextPane;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -24,12 +21,9 @@ import java.util.List;
 import java.awt.event.ActionEvent;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
-
 import cn.yanweijia.utils.Tools;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
-import javax.swing.JTextArea;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
@@ -93,7 +87,7 @@ public class MainWindow extends JFrame {
 										rowData[5]=""+packet.caplen;	//数据帧长度
 										rowData[6]=null;
 										tableModel.addRow(rowData);
-										//System.out.println(packetIndex + ": " + Tools.bytesToHexString(packet.header));
+										//System.out.println(packetIndex + ": " + Tools.bytesToHexString(packet.data));
 										packetIndex++;	//当前包序号自增
 										
 										
@@ -171,9 +165,9 @@ public class MainWindow extends JFrame {
 		});
 		
 		setResizable(false);
-		setTitle("抓包");
+		setTitle("计算机网络编程作业_抓包软件_严唯嘉(20140712)");
 		setVisible(true);
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 999, 682);
 		//获取网卡信息并显示
 		init();

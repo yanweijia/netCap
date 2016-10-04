@@ -16,7 +16,7 @@ public class StartupWindow extends JFrame {
 	//默认序列化ID
 	private static final long serialVersionUID = 8122641499996033401L;
 	private JPanel contentPane;
-	private JComboBox comboBox;
+	private JComboBox<String> comboBox;
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -43,7 +43,7 @@ public class StartupWindow extends JFrame {
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 		
-		comboBox = new JComboBox();
+		comboBox = new JComboBox<String>();
 		comboBox.setBounds(138, 39, 259, 20);
 		contentPane.add(comboBox);
 		//初始化网卡信息并添加进下拉框中
