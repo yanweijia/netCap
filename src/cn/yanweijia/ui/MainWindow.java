@@ -71,7 +71,7 @@ public class MainWindow extends JFrame {
 						@Override
 						public void run() {
 							try {
-								captor = JpcapCaptor.openDevice(networkInterface, 1, false, 20);
+								captor = JpcapCaptor.openDevice(networkInterface, 1512, true, 50);
 								while(isCapturing == true){
 									Packet packet = captor.getPacket();
 									if(packet!=null){	//如果抓包的数据不为空
@@ -89,9 +89,6 @@ public class MainWindow extends JFrame {
 										tableModel.addRow(rowData);
 										//System.out.println(packetIndex + ": " + Tools.bytesToHexString(packet.data));
 										packetIndex++;	//当前包序号自增
-										
-										
-										
 									}
 								}
 								System.out.println("停止抓包~~~");
@@ -192,6 +189,6 @@ public class MainWindow extends JFrame {
 	
 	
 	public static void main(String[] args){
-		new MainWindow(0);
+		new MainWindow(3);
 	}
 }
