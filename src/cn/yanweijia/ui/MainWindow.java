@@ -162,7 +162,7 @@ public class MainWindow extends JFrame {
 		});
 		
 		setResizable(false);
-		setTitle("计算机网络编程作业_抓包软件_严唯嘉(20140712)");
+		setTitle("计算机网络编程作业_抓包软件_严唯嘉(20140712)_徐智杰(20140711)");
 		setVisible(true);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 999, 682);
